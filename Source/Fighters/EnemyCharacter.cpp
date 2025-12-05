@@ -4,6 +4,7 @@
 #include "Components/TextRenderComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "Components/SphereComponent.h"
 #include "EnemyAnimInst.h"
 
 AEnemyCharacter::AEnemyCharacter()
@@ -33,6 +34,15 @@ AEnemyCharacter::AEnemyCharacter()
 	// AI 초기 상태 설정
 	CurrentState = EEnemyState::Idle;
 	
+	// 오른주먹 콜리전 스피어 생성
+	RightFistCollisionSphere = CreateDefaultSubobject<USphereComponent>(TEXT("RightFistCollision"));
+	RightFistCollisionSphere->SetupAttachment(GetMesh(), FName("hand_l")); // 왼손 뼈(hand_l)에 부착
+	RightFistCollisionSphere->SetSphereRadius(15.f); // 주먹 크기에 맞게 조절
+
+	// 초기에는 콜리전 비활성화
+	RightFistCollisionSphere->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	RightFistCollisionSphere->SetCollisionProfileName(TEXT("OverlapAllDynamic"));
+
 }
 
 void AEnemyCharacter::BeginPlay()
@@ -48,6 +58,9 @@ void AEnemyCharacter::BeginPlay()
 	{
 		GetCharacterMovement()->MaxWalkSpeed = MoveSpeed;
 	}
+
+	// 오버랩 이벤트 함수 바인딩
+	RightFistCollisionSphere->OnComponentBeginOverlap.AddDynamic(this, &AEnemyCharacter::OnFistOverlap);
 }
 
 void AEnemyCharacter::Tick(float DeltaTime)
@@ -158,6 +171,8 @@ void AEnemyCharacter::Tick(float DeltaTime)
 
 void AEnemyCharacter::Die()
 {
+	if (CurrentState == EEnemyState::Dead) return;
+
 	CurrentState = EEnemyState::Dead;
 	UpdateStateText();
 
@@ -226,5 +241,44 @@ void AEnemyCharacter::Knockback(const FVector& Direction, float Force)
 		// Apply knockback force. We want to launch the character upwards slightly as well (XYOverride, ZOverride)
 		GetCharacterMovement()->Launch(Direction * Force + FVector(0, 0, Force * 0.5f));
 		UE_LOG(LogTemp, Log, TEXT("Enemy %s knocked back with force %f"), *GetName(), Force);
+	}
+}
+
+void AEnemyCharacter::ActivateFistCollision()
+{
+	UE_LOG(LogTemp, Log, TEXT("Fist collision ACTIVATED"));
+	HitActorsInSwing.Empty(); // 새 공격 시작 시, 맞은 액터 목록 초기화
+	RightFistCollisionSphere->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+}
+
+void AEnemyCharacter::DeactivateFistCollision()
+{
+	UE_LOG(LogTemp, Log, TEXT("Fist collision DEACTIVATED"));
+	RightFistCollisionSphere->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+}
+
+void AEnemyCharacter::OnFistOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
+{
+	// 자기 자신이나, 소유자가 같거나, 액터가 유효하지 않으면 무시
+	if (!OtherActor || OtherActor == this || OtherActor == GetOwner())
+	{
+		return;
+	}
+
+	// 이번 공격 스윙에서 이미 맞은 액터인지 확인
+	if (HitActorsInSwing.Contains(OtherActor))
+	{
+		return;
+	}
+
+	// 플레이어인지 확인하고 데미지 적용
+	if (APawn* PlayerPawn = Cast<APawn>(OtherActor))
+	{
+		if (PlayerPawn->IsPlayerControlled())
+		{
+			UE_LOG(LogTemp, Log, TEXT("Enemy %s's fist hit Player %s"), *GetName(), *PlayerPawn->GetName());
+			UGameplayStatics::ApplyDamage(PlayerPawn, AttackDamage, GetController(), this, UDamageType::StaticClass());
+			HitActorsInSwing.Add(OtherActor); // 맞은 액터 목록에 추가하여 중복 데미지 방지
+		}
 	}
 }

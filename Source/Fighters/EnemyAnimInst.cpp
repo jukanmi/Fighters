@@ -14,6 +14,13 @@ UEnemyAnimInst::UEnemyAnimInst()
 
 }
 
+void UEnemyAnimInst::NativeInitializeAnimation()
+{
+	Super::NativeInitializeAnimation();
+
+	OnMontageEnded.AddDynamic(this, &UEnemyAnimInst::OnMontageEnded);
+}
+
 void UEnemyAnimInst::NativeUpdateAnimation(float DeltaSeconds)
 {
     Super::NativeUpdateAnimation(DeltaSeconds);
@@ -46,8 +53,10 @@ void UEnemyAnimInst::PlayAttackMontage()
 
 void UEnemyAnimInst::PlayDieMontage()
 {
+    UE_LOG(LogTemp, Log, TEXT("Enemy Die Montage will Play"));
     if (DieMontage)
     {
+        UE_LOG(LogTemp, Log, TEXT("Enemy Die Montage Playing"));
         Montage_Play(DieMontage);
     }
 }
@@ -69,6 +78,7 @@ void UEnemyAnimInst::OnMontageEnded(UAnimMontage* Montage, bool bInterrupted)
     // 죽음 몽타주가 끝났을 때 오너 액터를 제거
     else if (Montage == DieMontage)
     {
+        UE_LOG(LogTemp, Log, TEXT("Enemy Die Montage Ended"));
         AActor* OwnerActor = TryGetPawnOwner();
         if(OwnerActor) OwnerActor->Destroy();
     }

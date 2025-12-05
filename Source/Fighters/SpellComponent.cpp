@@ -42,7 +42,6 @@ FFinalSpellData USpellComponent::CalculateFinalStats(const FCustomizedSpell& Cus
         // Demerit
         ResultData.FinalManaCost = BaseData->BaseManaCost * CustomData.ManaCostRatio;
         ResultData.FinalCastTime = BaseData->BaseCastTime * CustomData.CastTimeRatio;
-        ResultData.FinalCooldownTime = BaseData->BaseCooldownTime * CustomData.CooldownTimeRatio;
 
         // Others
          ResultData.ProjectileEffect = BaseData->ProjectileEffect;

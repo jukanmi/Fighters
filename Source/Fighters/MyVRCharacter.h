@@ -60,8 +60,29 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Magic")
 	void UpdateCurrentCustomizedSpell(const FCustomizedSpell& NewSpellData);
 
-	/** Toggles the magic customization UI on or off. */
-	
+	// --- Health and Mana ---
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Stats")
+	float MaxHealth = 100.f;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Stats")
+	float CurrentHealth;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Stats")
+	float MaxMana = 100.f;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Stats")
+	float CurrentMana;
+
+
+
+	/** Applies damage to the character and returns the actual damage taken after calculations. */
+	UFUNCTION(BlueprintCallable, Category = "Stats")
+	virtual float TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser) override;
+	/** Consumes mana if enough is available. Returns true if mana was consumed, false otherwise. */
+	UFUNCTION(BlueprintCallable, Category = "Stats")
+	bool UseMana(float ManaCost);
+
+	/** Handles character death logic. */
+	UFUNCTION(BlueprintCallable, Category = "Stats")
+	void Die();
+
 	
 
 protected:

@@ -53,6 +53,9 @@ void AMyVRCharacter::BeginPlay()
 	
 	if (APlayerController* PlayerController = Cast<APlayerController>(Controller))
 	{
+		CurrentHealth = MaxHealth;
+		CurrentMana = MaxMana;
+
 		if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PlayerController->GetLocalPlayer()))
 		{
 			if (DefaultMappingContext)
@@ -125,17 +128,7 @@ void AMyVRCharacter::Look(const FInputActionValue& Value)
 
 void AMyVRCharacter::Projectile()
 {
-	// PlayerAnimInst를 가져와서 공격 몽타주 재생을 요청합니다.	
-	UPlayerAnimInst* AnimInstance = Cast<UPlayerAnimInst>(GetMesh()->GetAnimInstance());
-	if (AnimInstance && !AnimInstance->bIsAttacking && !GetCharacterMovement()->IsFalling())
-	{
-		AnimInstance->PlayAttackMontage();
-	}
-	else
-	{
-		return;
-	}
-
+	
 	if (!SpellComponent) return;
 
 	if (SpellBook.Num() == 0)
@@ -149,6 +142,24 @@ void AMyVRCharacter::Projectile()
 
 	FCustomizedSpell SelectedSpell = SpellBook[CurrentSpellSlotIndex];
 	FFinalSpellData FinalStats = SpellComponent->CalculateFinalStats(SelectedSpell);
+
+	// 마나 체크
+	if (!UseMana(FinalStats.FinalManaCost))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Not enough mana to cast spell. Required: %f, Current: %f"), FinalStats.FinalManaCost, CurrentMana);
+		return;
+	}
+	// PlayerAnimInst를 가져와서 공격 몽타주 재생을 요청합니다.	
+	UPlayerAnimInst* AnimInstance = Cast<UPlayerAnimInst>(GetMesh()->GetAnimInstance());
+	if (AnimInstance && !AnimInstance->bIsAttacking && !GetCharacterMovement()->IsFalling())
+	{
+		AnimInstance->PlayAttackMontage();
+	}
+	else
+	{
+		return;
+	}
+
 
 	FVector SpawnLoc = FPSCamera->GetComponentLocation() + (FPSCamera->GetForwardVector() * 50.0f);
 	FRotator SpawnRot = FPSCamera->GetComponentRotation();
@@ -184,6 +195,47 @@ void AMyVRCharacter::Projectile()
 		MagicProj->InitializeSpell(FinalStats);
 		UE_LOG(LogTemp, Log, TEXT("PC Fire! Damage: %f"), FinalStats.FinalDamage);
 	}
+}
+
+float AMyVRCharacter::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
+{
+	float ActualDamage = Super::TakeDamage(DamageAmount, DamageEvent, EventInstigator, DamageCauser);
+	if (ActualDamage > 0.f)
+	{
+		CurrentHealth -= ActualDamage;
+		UE_LOG(LogTemp, Log, TEXT("Player took %f damage. Current health: %f"), ActualDamage, CurrentHealth);
+		if (CurrentHealth <= 0.f)
+		{
+			Die();
+		}
+	}
+	return ActualDamage;
+}
+
+bool AMyVRCharacter::UseMana(float ManaCost)
+{
+	if (CurrentMana >= ManaCost)
+	{
+		CurrentMana -= ManaCost;
+		return true;
+	}
+	return false;
+}
+
+void AMyVRCharacter::Die()
+{
+	UE_LOG(LogTemp, Log, TEXT("Player has died."));	
+
+	// Disable input
+	APlayerController* PC = Cast<APlayerController>(GetController());
+	if (PC)
+	{
+		DisableInput(PC);
+	}
+
+	// Enable ragdoll physics
+	GetMesh()->SetSimulatePhysics(true);
+	GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 }
 
 FCustomizedSpell AMyVRCharacter::GetCurrentCustomizedSpell()

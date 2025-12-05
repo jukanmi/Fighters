@@ -33,9 +33,6 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Base Cost")
 	float BaseCastTime = 1.0f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Base Cost")
-	float BaseCooldownTime = 2.0f;
-
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TSubclassOf<AActor> ProjectileActorClass;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
@@ -78,9 +75,6 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ratio | Demerit")
 	float CastTimeRatio = 1.0f;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ratio | Demerit")
-	float CooldownTimeRatio = 1.0f;
 };
 
 USTRUCT(BlueprintType)
@@ -110,8 +104,6 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Final Stats")
 	float FinalCastTime;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Final Stats")
-	float FinalCooldownTime;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TSubclassOf<AActor> ProjectileActorClass;
@@ -126,7 +118,7 @@ public:
 
 	FFinalSpellData()
 		: FinalDamage(0), FinalKnockbackForce(0), FinalAOERange(0),
-		  FinalManaCost(0), FinalCastTime(0), FinalCooldownTime(0)
+		  FinalManaCost(0), FinalCastTime(0)
 	{
 	}
 };

@@ -24,6 +24,9 @@ public:
 	// 매 프레임 호출되는 업데이트 함수
 	virtual void NativeUpdateAnimation(float DeltaSeconds) override;
 
+	// 초기화 함수
+	virtual void NativeInitializeAnimation() override;
+
 	// 적의 현재 속도
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Animation")
 	float Speed;
