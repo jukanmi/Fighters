@@ -162,7 +162,6 @@ void AEnemyCharacter::Tick(float DeltaTime)
 		}
 		else if (AnimInstance && !AnimInstance->bIsAttacking)
 		{
-			// 공격 몽타주 재생
 			AnimInstance->PlayAttackMontage();
 		}
 		break;

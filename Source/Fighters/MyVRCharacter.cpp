@@ -66,6 +66,20 @@ void AMyVRCharacter::BeginPlay()
 	}
 }
 
+void AMyVRCharacter::Tick(float DeltaTime)
+{
+	Super::Tick(DeltaTime);
+
+	if (CurrentMana < MaxMana)
+	{
+		CurrentMana += ManaRegenRate * DeltaTime;
+		if (CurrentMana > MaxMana)
+		{
+			CurrentMana = MaxMana;
+		}
+	}
+}
+
 void AMyVRCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
@@ -75,6 +89,7 @@ void AMyVRCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompo
 		if (MoveAction)    EnhancedInputComponent->BindAction(MoveAction, ETriggerEvent::Triggered, this, &AMyVRCharacter::Move);
 		if (LookAction)    EnhancedInputComponent->BindAction(LookAction, ETriggerEvent::Triggered, this, &AMyVRCharacter::Look);
 		if (CastSpellAction) EnhancedInputComponent->BindAction(CastSpellAction, ETriggerEvent::Started, this, &AMyVRCharacter::Projectile);
+		if (ToggleUIAction) EnhancedInputComponent->BindAction(ToggleUIAction, ETriggerEvent::Started, this, &AMyVRCharacter::ToggleMagicUI);
 
 		if (JumpAction)
 		{
@@ -117,6 +132,11 @@ void AMyVRCharacter::Look(const FInputActionValue& Value)
 		return;
 	}
 
+	if (MagicWidgetInstance && MagicWidgetInstance->IsInViewport())
+	{
+		return;
+	}
+
 	FVector2D LookAxisVector = Value.Get<FVector2D>();
 
 	if (Controller != nullptr)
@@ -128,6 +148,7 @@ void AMyVRCharacter::Look(const FInputActionValue& Value)
 
 void AMyVRCharacter::Projectile()
 {
+	if (bIsCasting) return;
 	
 	if (!SpellComponent) return;
 
@@ -160,7 +181,25 @@ void AMyVRCharacter::Projectile()
 		return;
 	}
 
+	// Cast Time Logic
+	if (FinalStats.FinalCastTime > 0.f)
+	{
+		bIsCasting = true;
+		FTimerDelegate TimerDelegate;
+		TimerDelegate.BindUFunction(this, FName("SpawnProjectileDelayed"), FinalStats);
+		GetWorld()->GetTimerManager().SetTimer(CastTimerHandle, TimerDelegate, FinalStats.FinalCastTime, false);
+		UE_LOG(LogTemp, Log, TEXT("Started Casting. Time: %f"), FinalStats.FinalCastTime);
+	}
+	else
+	{
+		SpawnProjectileDelayed(FinalStats);
+	}
+}
 
+void AMyVRCharacter::SpawnProjectileDelayed(FFinalSpellData FinalStats)
+{
+	bIsCasting = false;
+	
 	FVector SpawnLoc = FPSCamera->GetComponentLocation() + (FPSCamera->GetForwardVector() * 50.0f);
 	FRotator SpawnRot = FPSCamera->GetComponentRotation();
 
@@ -281,4 +320,37 @@ void AMyVRCharacter::JumpStart(const FInputActionValue& Value)
 void AMyVRCharacter::JumpStop(const FInputActionValue& Value)
 {
 	Super::StopJumping();
+}
+
+void AMyVRCharacter::ToggleMagicUI(const FInputActionValue& Value)
+{
+	if (APlayerController* PC = Cast<APlayerController>(Controller))
+	{
+		if (MagicWidgetInstance && MagicWidgetInstance->IsInViewport())
+		{
+			// Close UI
+			MagicWidgetInstance->RemoveFromParent();
+			PC->SetShowMouseCursor(false);
+			PC->SetInputMode(FInputModeGameOnly());
+		}
+		else
+		{
+			// Open UI
+			if (!MagicWidgetInstance && MagicWidgetClass)
+			{
+				MagicWidgetInstance = CreateWidget<UUserWidget>(PC, MagicWidgetClass);
+			}
+
+			if (MagicWidgetInstance)
+			{
+				MagicWidgetInstance->AddToViewport();
+				PC->SetShowMouseCursor(true);
+				
+				FInputModeGameAndUI InputMode;
+				InputMode.SetWidgetToFocus(MagicWidgetInstance->TakeWidget());
+				InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
+				PC->SetInputMode(InputMode);
+			}
+		}
+	}
 }

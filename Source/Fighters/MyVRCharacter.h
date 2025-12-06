@@ -25,6 +25,7 @@ public:
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
+	virtual void Tick(float DeltaTime) override;
 
 public:	
 	// Called to bind functionality to input
@@ -69,6 +70,8 @@ public:
 	float MaxMana = 100.f;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Stats")
 	float CurrentMana;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Stats")
+	float ManaRegenRate = 10.f;
 
 
 
@@ -104,14 +107,28 @@ protected:
 	UPROPERTY(EditAnywhere, Category = Input)
 	UInputAction* JumpAction;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
+	TSubclassOf<class UUserWidget> MagicWidgetClass;
+
+	UPROPERTY(BlueprintReadOnly, Category = "UI")
+	class UUserWidget* MagicWidgetInstance;
+
 	/** Called for movement input */
 	void Move(const FInputActionValue& Value);
 
 	/** Called for looking input */
 	void Look(const FInputActionValue& Value);
 
+	void ToggleMagicUI(const FInputActionValue& Value);
+
 	/** Called for casting spell */
 	void Projectile();
+	
+	UFUNCTION()
+	void SpawnProjectileDelayed(FFinalSpellData FinalStats);
+	
+	FTimerHandle CastTimerHandle;
+	bool bIsCasting = false;
 
 	/** Called for jumping input */
 	void JumpStart(const FInputActionValue& Value);

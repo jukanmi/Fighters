@@ -24,9 +24,6 @@ public:
 	// 매 프레임 호출되는 업데이트 함수
 	virtual void NativeUpdateAnimation(float DeltaSeconds) override;
 
-	// 초기화 함수
-	virtual void NativeInitializeAnimation() override;
-
 	// 적의 현재 속도
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Animation")
 	float Speed;
@@ -38,6 +35,10 @@ public:
 	// 적이 공격 중인지 여부
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Animation")
 	bool bIsAttacking;
+
+	// 적이 죽음 중인지 여부
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Animation")
+	bool bIsDie;
 
 	// 공격 몽타주를 재생하는 함수
 	void PlayAttackMontage();
